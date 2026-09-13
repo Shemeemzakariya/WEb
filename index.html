@@ -277,6 +277,7 @@
           <h3>Dawasir</h3>
           <p>Defending champions of last season's tug-of-war circle, carrying the eastern camp's banner into a third straight year.</p>
           <div class="group-status"><span class="dot"></span>Standing confirmed</div>
+          <div class="group-score" id="score-Dawasir">— pts</div>
         </div>
         <div class="group-card reveal">
           <div class="group-stripe"></div>
@@ -284,6 +285,7 @@
           <h3>Qahthan</h3>
           <p>Fielding the fest's youngest roster this season, with the loudest drum line and a relay team nobody wants to draw first.</p>
           <div class="group-status"><span class="dot"></span>Live scoring tonight</div>
+          <div class="group-score" id="score-Qahthan">— pts</div>
         </div>
         <div class="group-card reveal">
           <div class="group-stripe"></div>
@@ -291,6 +293,7 @@
           <h3>Otaibah</h3>
           <p>Leads the sunrise procession every year and holds the record for the longest-running poetry majlis in fest history.</p>
           <div class="group-status"><span class="dot"></span>Standing confirmed</div>
+          <div class="group-score" id="score-Otaibah">— pts</div>
         </div>
       </div>
     </div>
@@ -414,6 +417,35 @@
     });
   }, { threshold: 0.15 });
   revealEls.forEach(function(el){ observer.observe(el); });
+</script>
+
+<style>
+  .group-score { margin-top: 10px; font-size: 1.4rem; font-weight: 700; color: #f0c060; }
+</style>
+
+<!-- Live scores from Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+  var firebaseConfig = {
+    apiKey: "AIzaSyAv15WuLN137VAX9Meu0lANecxf3zkD4rQ",
+    authDomain: "razi-life-fest-1448.firebaseapp.com",
+    projectId: "razi-life-fest-1448",
+    storageBucket: "razi-life-fest-1448.firebasestorage.app",
+    messagingSenderId: "129120733529",
+    appId: "1:129120733529:web:308aa2f07e6b045dff6448"
+  };
+  firebase.initializeApp(firebaseConfig);
+  var db = firebase.firestore();
+
+  db.collection('scores').onSnapshot(function(snapshot){
+    snapshot.forEach(function(doc){
+      var el = document.getElementById('score-' + doc.id);
+      if (el && doc.data().score !== undefined) {
+        el.textContent = doc.data().score + ' pts';
+      }
+    });
+  });
 </script>
 </body>
 </html>
