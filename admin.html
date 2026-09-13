@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Razi Life Fest — Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; background:#111; color:#eee; }
+  h1 { font-size: 1.3rem; }
+  input, button, select { width: 100%; padding: 10px; margin: 6px 0; font-size: 1rem; box-sizing: border-box; border-radius: 6px; border: 1px solid #444; background:#1c1c1c; color:#eee; }
+  button { background: #d97706; border: none; color: #111; font-weight: 600; cursor: pointer; }
+  button:hover { background: #f59e0b; }
+  .card { border: 1px solid #333; border-radius: 10px; padding: 16px; margin: 16px 0; }
+  #login-view, #panel-view { display: none; }
+  .status-msg { font-size: 0.85rem; color: #9ca3af; min-height: 1.2em; }
+</style>
+</head>
+<body>
+
+<h1>Razi Life Fest — Admin</h1>
+
+<!-- LOGIN -->
+<div id="login-view">
+  <div class="card">
+    <input id="email" type="email" placeholder="Admin email" />
+    <input id="password" type="password" placeholder="Password" />
+    <button onclick="login()">Log in</button>
+    <div class="status-msg" id="login-status"></div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL (shown only after login) -->
+<div id="panel-view">
+  <button onclick="logout()" style="background:#333;color:#eee;">Log out</button>
+
+  <div class="card">
+    <h2>House Scores</h2>
+    <div id="scores-form"></div>
+  </div>
+
+  <div class="card">
+    <h2>Programme Schedule</h2>
+    <div id="schedule-form"></div>
+  </div>
+</div>
+
+<!-- Firebase SDKs (v10 compat build — simplest for plain HTML/JS) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+// ====== 1. PASTE YOUR FIREBASE CONFIG HERE (from Project Settings > General) ======
+const firebaseConfig = {
+  apiKey: "AIzaSyAv15WuLN137VAX9Meu0lANecxf3zkD4rQ",
+  authDomain: "razi-life-fest-1448.firebaseapp.com",
+  projectId: "razi-life-fest-1448",
+  storageBucket: "razi-life-fest-1448.firebasestorage.app",
+  messagingSenderId: "129120733529",
+  appId: "1:129120733529:web:308aa2f07e6b045dff6448"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// House names — match whatever you already have on the public site
+const HOUSES = ["Dawasir", "Qahthan", "Otaibah"];
+// Programme item names — edit to match your actual schedule
+const PROGRAMS = ["Opening Procession", "Ardah — Sword Dance", "Poetry Majlis", "Relay & Games", "Closing Bonfire"];
+const STATUSES = ["upcoming", "live", "completed"];
+
+// ====== 2. AUTH ======
+function login() {
+  const email = document.getElementById('email').value;
+  const pass = document.getElementById('password').value;
+  document.getElementById('login-status').textContent = "Logging in...";
+  auth.signInWithEmailAndPassword(email, pass)
+    .catch(err => document.getElementById('login-status').textContent = err.message);
+}
+function logout() { auth.signOut(); }
+
+auth.onAuthStateChanged(user => {
+  document.getElementById('login-view').style.display = user ? 'none' : 'block';
+  document.getElementById('panel-view').style.display = user ? 'block' : 'none';
+  if (user) buildForms();
+});
+
+// ====== 3. BUILD THE UPDATE FORMS ======
+function buildForms() {
+  const scoresDiv = document.getElementById('scores-form');
+  scoresDiv.innerHTML = HOUSES.map(h => `
+    <label>${h} score</label>
+    <input type="number" id="score-${h}" placeholder="Current score" />
+    <button onclick="updateScore('${h}')">Update ${h}</button>
+  `).join('<hr style="border-color:#333">');
+
+  const scheduleDiv = document.getElementById('schedule-form');
+  scheduleDiv.innerHTML = PROGRAMS.map(p => `
+    <label>${p}</label>
+    <select id="status-${p.replace(/\s|—/g,'_')}">
+      ${STATUSES.map(s => `<option value="${s}">${s}</option>`).join('')}
+    </select>
+    <button onclick="updateStatus('${p}')">Update status</button>
+  `).join('<hr style="border-color:#333">');
+
+  // Pre-fill current values
+  HOUSES.forEach(h => db.collection('scores').doc(h).get().then(doc => {
+    if (doc.exists) document.getElementById(`score-${h}`).value = doc.data().score;
+  }));
+  PROGRAMS.forEach(p => db.collection('schedule').doc(p).get().then(doc => {
+    const id = `status-${p.replace(/\s|—/g,'_')}`;
+    if (doc.exists && document.getElementById(id)) document.getElementById(id).value = doc.data().status;
+  }));
+}
+
+// ====== 4. WRITE UPDATES TO FIRESTORE ======
+function updateScore(house) {
+  const val = Number(document.getElementById(`score-${house}`).value);
+  db.collection('scores').doc(house).set({ score: val, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+}
+function updateStatus(program) {
+  const id = `status-${program.replace(/\s|—/g,'_')}`;
+  const val = document.getElementById(id).value;
+  db.collection('schedule').doc(program).set({ name: program, status: val, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+}
+</script>
+</body>
+</html>
