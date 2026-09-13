@@ -446,6 +446,26 @@
       }
     });
   });
+
+  // Live schedule status — matches each Firestore doc to a timeline item by its "name" field,
+  // so it works regardless of what Document ID you used in Firestore.
+  var STATUS_LABELS = { upcoming: 'Upcoming', live: 'Live now', completed: 'Completed' };
+  db.collection('schedule').onSnapshot(function(snapshot){
+    var items = document.querySelectorAll('.t-item');
+    snapshot.forEach(function(doc){
+      var data = doc.data();
+      if (!data.name || !data.status) return;
+      items.forEach(function(item){
+        var h3 = item.querySelector('h3');
+        if (h3 && h3.textContent.trim() === data.name.trim()) {
+          var pill = item.querySelector('.pill');
+          if (!pill) return;
+          pill.textContent = STATUS_LABELS[data.status] || data.status;
+          pill.className = 'pill' + (data.status === 'live' ? ' live' : data.status === 'completed' ? ' done' : '');
+        }
+      });
+    });
+  });
 </script>
 </body>
 </html>
